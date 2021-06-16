@@ -17,7 +17,7 @@ const SummaryBox = styled(Box)`
 
 const NumberTag = styled.span`
   display: inline-block;
-  color: white;
+  color: ${props => props.tagcolor};
   font-size: 0.8rem;
   font-weight: 700;
   background-color: ${props => props.color};
@@ -27,8 +27,9 @@ const NumberTag = styled.span`
 `
 
 const ConfirmedCasesSummary = props => {
-  const {
+  let {
     status: { group: status },
+    asymptomatic: { group: asymptomatic },
   } = useStaticQuery(
     graphql`
       query {
@@ -38,20 +39,47 @@ const ConfirmedCasesSummary = props => {
             fieldValue
           }
         }
+        asymptomatic: allWarsCase(
+          filter: { onset_date: { in: ["asymptomatic", "none"] } }
+        ) {
+          group(field: onset_date) {
+            fieldValue
+            totalCount
+          }
+        }
       }
     `
   )
+
+  // count the "none" also
+  asymptomatic = [
+    asymptomatic.reduce(
+      (c, v) => ({
+        fieldValue: "asymptomatic",
+        totalCount: c.totalCount + v.totalCount,
+      }),
+      {
+        fieldValue: "asymptomatic",
+        totalCount: 0,
+      }
+    ),
+  ]
+
+  status = [...status, asymptomatic[0]]
 
   const { t } = useTranslation()
 
   const statusOrdering = {
     discharged: 10,
     pending_admission: 20,
-    hospitalised: 30,
+    stable: 30,
+    hospitalised_again: 35,
     serious: 40,
     critical: 50,
     deceased: 60,
-    "": 70,
+    no_admission: 65,
+    asymptomatic: 70,
+    "": 80,
   }
 
   return (
@@ -64,7 +92,7 @@ const ConfirmedCasesSummary = props => {
           const color = mapColorForStatus(v.fieldValue).main
           return (
             <Typography
-              key={i}
+              key={`${i}-${v.fieldValue}`}
               display="inline"
               variant="body2"
               style={{
@@ -74,7 +102,12 @@ const ConfirmedCasesSummary = props => {
               }}
             >
               {t(`cases.status_${v.fieldValue}`)}
-              <NumberTag color={color}>{v.totalCount}</NumberTag>
+              <NumberTag
+                color={color}
+                tagcolor={mapColorForStatus(v.fieldValue).contrastText}
+              >
+                {v.totalCount}
+              </NumberTag>
             </Typography>
           )
         })}

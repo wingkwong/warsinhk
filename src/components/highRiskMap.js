@@ -29,7 +29,7 @@ import NotListedLocationIcon from "@material-ui/icons/NotListedLocationRounded"
 import { trackCustomEvent } from "gatsby-plugin-google-analytics"
 import styled, { createGlobalStyle } from "styled-components"
 import { bps } from "@/ui/theme"
-import { Loader, Sprite, Container } from "pixi.js"
+import { Loader, Sprite, Container } from "pixi.js-legacy"
 
 const limit = 1.5
 const minLat = 22.3600556 - limit
@@ -50,6 +50,7 @@ ${bps.down("sm")} {
 const DateButton = styled(IconButton)`
   padding: 0;
   margin-left: 8px;
+  margin-top: 8px;
 `
 
 const LegendContainer = styled.table`
@@ -87,7 +88,7 @@ class HighRiskMap extends Component {
       dataPointRendered: null,
       showDatePicker: false,
       legend: null,
-      showLegend: true,
+      showLegend: false,
     }
     this.cache = new CellMeasurerCache({
       defaultHeight: 50,
@@ -142,9 +143,9 @@ class HighRiskMap extends Component {
                 [highRiskLocation.lat, highRiskLocation.lng],
               ],
               {
-                maxZoom: 15,
+                maxZoom: 17,
                 paddingTopLeft: [0, 60],
-                duration: 1.5,
+                duration: 0.5,
               }
             )
           const marker = this.markersById[id]
@@ -624,7 +625,7 @@ class HighRiskMap extends Component {
             style={{
               display: "flex",
               flexDirection: "row",
-              alignItems: "center",
+              alignItems: "flex-start",
             }}
           >
             <div style={{ flex: 1 }}>{this.props.selectBar}</div>

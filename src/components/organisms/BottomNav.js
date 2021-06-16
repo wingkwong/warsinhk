@@ -5,7 +5,7 @@ import { mapIcon } from "@components/icons"
 import Hidden from "@material-ui/core/Hidden"
 import styled from "styled-components"
 import { UnstyledLink } from "@components/atoms/UnstyledLink"
-import ContextStore from "@/contextStore"
+import { useLocation } from "@reach/router"
 import { getLocalizedPath } from "@/utils/i18n"
 import { useTranslation } from "react-i18next"
 import { bps } from "@/ui/theme"
@@ -16,7 +16,12 @@ const StyledBottomNavigation = styled(BottomNavigation)`
   bottom: 0;
   text-align: center;
   height: 60px;
+  height: calc(60px + constant(safe-area-inset-bottom));
+  height: calc(60px + env(safe-area-inset-bottom));
   z-index: 1000;
+
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
 
   .MuiBottomNavigationAction-root.Mui-selected {
     color: ${props => props.theme.palette.primary.text};
@@ -42,12 +47,7 @@ const StyledBottomNavigation = styled(BottomNavigation)`
 
 export default function SimpleBottomNavigation(props) {
   const { tabs } = props
-  const {
-    route: {
-      state: { path },
-    },
-  } = React.useContext(ContextStore)
-
+  const { pathname: path } = useLocation()
   const pageIndex = tabs.findIndex(o => o.to === path)
   const { t, i18n } = useTranslation()
 
@@ -55,7 +55,7 @@ export default function SimpleBottomNavigation(props) {
     <Hidden smUp implementation="css">
       <StyledBottomNavigation value={pageIndex} showLabels>
         {/* FIXME: the icon is not updated after navigating to other page */}
-        {/* 
+        {/*
             wingkwong: Cannot use <UnstyledLink> to wrap <BottomNavigationAction> because it has to be a direct child of BottomNavigation
         */}
         {tabs.map((tab, index) => (

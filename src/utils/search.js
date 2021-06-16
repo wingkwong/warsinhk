@@ -4,19 +4,51 @@ import _uniq from "lodash.uniq"
 import _isEqual from "lodash.isequal"
 import _flatten from "lodash.flatten"
 
-export const createDedupOptions = (i18n, edges, field) => {
-  return _uniq(edges.map(({ node }) => withLanguage(i18n, node, field)))
-    .filter(v => v !== "#N/A" && v !== "-" && v !== "")
-    .map(v => ({
-      label: v,
-      value: v,
-      field,
-    }))
+// Helper function for filterSearchOptions()
+const getSizeInSearchOptions = (options, size) => {
+  if (options.some(e => e.field === "case_no")) {
+    size = 3
+  }
+  return size
 }
 
-export const createDedupArrayOptions = (i18n, edges, field) => {
+export const createDedupOptions = (
+  i18n,
+  edges,
+  field,
+  sort_by_value = false
+) => {
+  if (!i18n) {
+    let r = edges
+      .map(({ node }) => node[field] || "")
+      .map(v => ({
+        label: v,
+        value: v,
+        field,
+      }))
+    if (sort_by_value) {
+      return r.sort((e1, e2) => e1.value - e2.value)
+    } else {
+      return r
+    }
+  } else {
+    return _uniq(edges.map(({ node }) => withLanguage(i18n, node, field)))
+      .filter(v => v !== "#N/A" && v !== "-" && v !== "")
+      .map(v => ({
+        label: v,
+        value: v,
+        field,
+      }))
+  }
+}
+
+export const createDedupArrayOptions = (i18n, edges, field, fieldName) => {
   return _uniq(
-    _flatten(edges.map(({ node }) => withLanguage(i18n, node, field)))
+    _flatten(
+      edges.map(({ node }) =>
+        node[field].map(nodeField => withLanguage(i18n, nodeField, fieldName))
+      )
+    )
   )
     .filter(v => v !== "#N/A" && v !== "-" && v !== "")
     .map(v => ({
@@ -30,6 +62,10 @@ export const containsText = (i18n, node, text, fields) => {
   if (typeof text === "string") {
     return fields
       .map(field => {
+        // Specific check for case number
+        if (field === "case_no" && node.case_no === text) {
+          return true
+        }
         const value = withLanguage(i18n, node, field)
         if (typeof value === "string") {
           return value.toLowerCase().indexOf(text.toLowerCase()) >= 0
@@ -67,14 +103,18 @@ export const searchDate = (
   return true
 }
 
-export const filterSearchOptions = (options, text, size) =>
-  options.map(option => ({
+export const filterSearchOptions = (options, text, size) => {
+  return options.map(option => ({
     ...option,
     options: _uniqBy(
       option.options.filter(opt => searchText(opt.label, text)),
       "label"
-    ).slice(0, option.defaultSize || size),
+    ).slice(
+      0,
+      option.defaultSize || getSizeInSearchOptions(option.options, size)
+    ),
   }))
+}
 
 export const filterByDate = (node, search_start_date, search_end_date) => {
   const { start_date, end_date } = node
@@ -107,4 +147,11 @@ export const sortOptionsWithHistories = (options, histories) => {
   return options.sort(
     (a, b) => optionSortOrder(b, histories) - optionSortOrder(a, histories)
   )
+}
+
+export const calculatePastNdays = ({ case_no, date }, n = 14) => {
+  const endDateTimeStamp = +new Date(date)
+  const daysToExpire = case_no !== "-" ? 14 : 0
+  if (Number.isNaN(endDateTimeStamp)) return false
+  return new Date() - endDateTimeStamp > 86400 * 1000 * daysToExpire
 }

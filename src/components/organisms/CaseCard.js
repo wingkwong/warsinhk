@@ -1,10 +1,9 @@
 import React from "react"
 import Typography from "@material-ui/core/Typography"
-import Box from "@material-ui/core/Box"
 import MuiLink from "@material-ui/core/Link"
 import { Link } from "gatsby"
 import styled from "styled-components"
-import { Row } from "@components/atoms/Row"
+import { Row, FlexStartRow } from "@components/atoms/Row"
 import { withLanguage, getLocalizedPath } from "@/utils/i18n"
 import { DefaultChip } from "@components/atoms/Chip"
 import { bps } from "@/ui/theme"
@@ -12,12 +11,14 @@ import {
   mapColorForClassification,
   mapColorForStatus,
 } from "@/utils/colorHelper"
-import { formatDateMDD } from "@/utils"
 import _get from "lodash.get"
 import CloseIcon from "@material-ui/icons/Close"
 import ChevronLeftRoundedIcon from "@material-ui/icons/ChevronLeftRounded"
 import ChevronRightRoundedIcon from "@material-ui/icons/ChevronRightRounded"
-
+import ShareButton from "@/components/organisms/ShareButton"
+import { DefaultTooltip } from "@/components/atoms/Tooltip"
+import HelpOutlineRoundedIcon from "@material-ui/icons/HelpOutlineRounded"
+const Box = "div"
 const CaseCard = styled.div`
   margin: 16px 0;
   ${bps.up("xs")} {
@@ -45,6 +46,16 @@ const CaseCard = styled.div`
       color: white;
       line-height: 0;
     }
+
+    .share-close {
+      display: flex;
+
+      svg:first-child {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+      }
+    }
   }
 
   .content {
@@ -59,21 +70,34 @@ const CaseCard = styled.div`
     padding-bottom: 12px;
   }
 
+  label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
   .highlight {
     margin: 12px 0 12px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     align-items: start;
 
-    label {
-      display: block;
-      font-size: 12px;
-      margin-bottom: 4px;
+    div:first-child {
+      padding-right: 8px;
     }
 
     p {
       font-weight: 400;
+      display: inline-flex;
+      align-self: center;
     }
+  }
+
+  .question_mark {
+    margin-left: 4px;
+    top: 0.125em;
+    position: relative;
+    font-size: 1.125rem;
   }
 
   .detail {
@@ -83,6 +107,13 @@ const CaseCard = styled.div`
 
     a {
       color: ${props => props.theme.palette.primary.main};
+    }
+  }
+
+  .case-source {
+    margin-top: 16px;
+    a {
+      margin-left: 8px;
     }
   }
 
@@ -117,21 +148,19 @@ const WarsCaseTrack = ({ i18n, t, track }) => {
     <>
       {track.map((tr, i) => {
         const remarksText = withLanguage(i18n, tr.node, "remarks")
+        const subDistrict = withLanguage(i18n, tr.node, "sub_district")
         return (
           <div key={i} className="track-item">
             <Row className="track-header">
               <Box>{withLanguage(i18n, tr.node, "action")}</Box>
-              <Box>
-                {tr.node.start_date === tr.node.end_date
-                  ? formatDateMDD(tr.node.end_date)
-                  : `${formatDateMDD(tr.node.start_date)} - ${formatDateMDD(
-                      tr.node.end_date
-                    )}`}
-              </Box>
+              <Box>{tr.node.end_date}</Box>
             </Row>
             <Row className="">
               <Typography variant="body1">
-                {withLanguage(i18n, tr.node, "location")}
+                {t("cases_sub_district_location", {
+                  sub_district: subDistrict === "-" ? "" : subDistrict,
+                  location: withLanguage(i18n, tr.node, "location"),
+                })}
               </Typography>
             </Row>
             {remarksText && (
@@ -161,38 +190,41 @@ const WarsCaseTrack = ({ i18n, t, track }) => {
 }
 
 const renderTextWithCaseLink = (i18n, node, text = "detail") => {
-  let rawText = withLanguage(i18n, node, text)
+  let rawText = withLanguage(i18n, node, text, true)
 
   let regexp = /#\d+/g
-  let relatedCases = [...rawText.matchAll(regexp)]
+  let relatedCases = []
+  let m
+  do {
+    m = regexp.exec(rawText)
+    if (m) {
+      relatedCases.push(m)
+    }
+  } while (m)
   let splitedRawText = rawText.split(regexp)
 
-  return (
-    <>
-      {splitedRawText.map((str, i) => {
-        let caseNo = relatedCases[i] && relatedCases[i][0]
-
-        return (
-          <>
-            {str}
-            {caseNo && (
-              <Link
-                to={getLocalizedPath(
-                  i18n,
-                  `/cases/${caseNo.slice(1, caseNo.length)} `
-                )}
-              >
-                {caseNo}
-              </Link>
+  return splitedRawText.map((str, i) => {
+    let caseNo = relatedCases[i] && relatedCases[i][0]
+    return (
+      <React.Fragment key={i}>
+        {str}
+        {caseNo && (
+          <Link
+            key={caseNo}
+            to={getLocalizedPath(
+              i18n,
+              `/cases/${caseNo.slice(1, caseNo.length)}`
             )}
-          </>
-        )
-      })}
-    </>
-  )
+          >
+            {caseNo}
+          </Link>
+        )}
+      </React.Fragment>
+    )
+  })
 }
 
-export const WarsCaseCard = React.forwardRef((props, ref) => {
+const WarsCaseCardComponent = React.forwardRef((props, ref) => {
   const {
     node,
     i18n,
@@ -204,15 +236,30 @@ export const WarsCaseCard = React.forwardRef((props, ref) => {
     backToCase = false,
   } = props
   const trackData = _get(patientTrack, "[0].edges", null)
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-
   const track = React.useMemo(
-    () => trackData && <WarsCaseTrack i18n={i18n} t={t} track={trackData} />,
-    [i18n, t, trackData]
+    () =>
+      trackData && trackData.length > 0 ? (
+        <WarsCaseTrack
+          key={`track-${node.case_no}`}
+          i18n={i18n}
+          t={t}
+          track={trackData}
+        />
+      ) : null,
+    [i18n, node.case_no, t, trackData]
   )
 
-  const groupName = withLanguage(i18n, node, "group_name")
+  const statusText = withLanguage(i18n, node, "status")
+  const hospitalText = withLanguage(i18n, node, "hospital")
+  const citizenshipText = withLanguage(i18n, node, "citizenship")
+  const sources = [
+    node.source_url_1,
+    node.source_url_2,
+    node.source_url_3,
+    node.source_url_4,
+    node.source_url_5,
+  ].filter(n => n)
+
   const dateFormat = /\d{4}-\d{2}-\d{2}/g
   return (
     <CaseCard
@@ -229,13 +276,26 @@ export const WarsCaseCard = React.forwardRef((props, ref) => {
           </Link>
         )}
         <Box>
-          {`#${node.case_no}`} ({withLanguage(i18n, node, "status")})
+          {`#${node.case_no}`}{" "}
+          {`(${
+            statusText && statusText !== "#N/A" && statusText !== "-"
+              ? statusText
+              : t("cases.status_pending_update")
+          })`}
         </Box>
-        {handleClose && <CloseIcon onClick={e => handleClose(e)} />}
+        <div className="share-close">
+          {handleClose && !showViewMore && (
+            <ShareButton caseId={node.case_no} />
+          )}
+          {handleClose && <CloseIcon onClick={e => handleClose(e)} />}
+        </div>
         {showViewMore && (
           <Link to={getLocalizedPath(i18n, `/cases`)}>
             <ChevronRightRoundedIcon />
           </Link>
+        )}
+        {!handleClose && !backToCase && !showViewMore && (
+          <ShareButton caseId={node.case_no} />
         )}
       </Box>
       <Box className="content">
@@ -286,21 +346,54 @@ export const WarsCaseCard = React.forwardRef((props, ref) => {
           <Box>
             <label>{t("dashboard.patient_hospital")}</label>
             <Typography variant="body1">
-              {withLanguage(i18n, node, "hospital") || "-"}
+              {(hospitalText && hospitalText !== "#N/A" && hospitalText) || "-"}
             </Typography>
           </Box>
           <Box>
             <label>{t("dashboard.patient_citizenship")}</label>
             <Typography variant="body1">
-              {withLanguage(i18n, node, "citizenship") || "-"}
+              {(citizenshipText &&
+                citizenshipText !== "#N/A" &&
+                citizenshipText) ||
+                "-"}
             </Typography>
           </Box>
         </Row>
-        {groupName && (
-          <Row className="highlight">
+        {node.groups && node.groups.length > 0 && (
+          <Row className="group">
             <Box>
               <label>{t("dashboard.group_name")}</label>
-              <Typography variant="body1">{groupName}</Typography>
+              <Typography variant="body1">
+                {node.groups.map((group, i) => {
+                  const groupName = withLanguage(i18n, group, "name")
+                  const groupDescriptionName = withLanguage(
+                    i18n,
+                    group,
+                    "description"
+                  )
+                  return (
+                    <span key={groupName} variant="body1">
+                      {groupName}
+                      {groupDescriptionName && (
+                        <DefaultTooltip
+                          title={<>{groupDescriptionName}</>}
+                          enterTouchDelay={10}
+                          leaveTouchDelay={5000}
+                          interactive
+                        >
+                          <HelpOutlineRoundedIcon
+                            fontSize="inherit"
+                            className="question_mark"
+                          />
+                        </DefaultTooltip>
+                      )}
+                      {node.groups.length > 1 &&
+                        i !== node.groups.length - 1 &&
+                        "／"}
+                    </span>
+                  )
+                })}
+              </Typography>
             </Box>
           </Row>
         )}
@@ -309,12 +402,29 @@ export const WarsCaseCard = React.forwardRef((props, ref) => {
           <Typography variant="body1">
             {renderTextWithCaseLink(i18n, node, "detail")}
           </Typography>
-          <MuiLink variant="body1" href={node.source_url} target="_blank">
-            {t("dashboard.source")}
-          </MuiLink>
+          {!!sources.length && (
+            <div className="case-source">
+              <FlexStartRow>
+                <Typography variant="body1">{t("dashboard.source")}</Typography>
+                {sources.map((source, i) => {
+                  return (
+                    <MuiLink
+                      key={source}
+                      variant="body1"
+                      href={source}
+                      target="_blank"
+                    >
+                      {i + 1}
+                    </MuiLink>
+                  )
+                })}
+              </FlexStartRow>
+            </div>
+          )}
         </Box>
         {track}
       </Box>
     </CaseCard>
   )
 })
+export const WarsCaseCard = React.memo(WarsCaseCardComponent)

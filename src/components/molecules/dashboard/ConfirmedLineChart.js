@@ -3,14 +3,12 @@ import { useTranslation } from "react-i18next"
 import { useStaticQuery, graphql } from "gatsby"
 import SimpleLineChart from "@/components/charts/SimpleLineChart"
 import Typography from "@material-ui/core/Typography"
-import { withLanguage } from "@/utils/i18n"
-import _get from "lodash.get"
 
 export default props => {
   const data = useStaticQuery(
     graphql`
       query {
-        allBotWarsLatestFigures(
+        dailyFigures: allWarsLatestFiguresOverride(
           sort: { order: DESC, fields: date }
           filter: { date: { gt: "2020-01-20" } }
           skip: 0
@@ -23,76 +21,77 @@ export default props => {
               investigating
               death
               reported
+              bed_number
+              bed_percent
+              room_number
+              room_percent
             }
           }
         }
-        allSiteConfig(
-          filter: {
-            key: { in: ["isolation_beds.helmet", "isolation_beds.count"] }
-          }
+        pendingAdmission: allWarsCase(
+          filter: { status: { eq: "pending_admission" } }
         ) {
-          edges {
-            node {
-              key
-              value_zh
-              value_en
-            }
-          }
+          totalCount
         }
       }
     `
   )
-  const { i18n, t } = useTranslation()
+  const { t } = useTranslation()
 
-  const getDataForChart = ({ node }) => {
-    const data = {
+  const getDataForChart = ({ node }, i) => {
+    const chartData = {
       ...node,
     }
-    Object.keys(data).forEach(key => {
-      if (!isNaN(parseInt(data[key], 0))) {
-        data[key] = parseInt(data[key], 0)
+    Object.keys(chartData).forEach(key => {
+      if (!isNaN(parseInt(chartData[key], 0))) {
+        chartData[key] = parseInt(chartData[key], 0)
       }
     })
     return {
-      ...data,
-      hospitalised: data.confirmed - data.discharged,
+      ...chartData,
+      hospitalised:
+        chartData.confirmed -
+        chartData.death -
+        chartData.discharged -
+        ((i === 0 && data.pendingAdmission.totalCount) || 0),
     }
   }
 
-  const isolationBedCount = _get(
-    data.allSiteConfig.edges.find(
-      ({ node }) => node.key === "isolation_beds.count"
-    ),
-    "node.value_zh",
-    "0"
-  )
-  const isolationText = withLanguage(
-    i18n,
-    _get(
-      data.allSiteConfig.edges.find(
-        ({ node }) => node.key === "isolation_beds.helmet"
-      ),
-      "node",
-      {}
-    ),
-    "value"
-  )
+  const isolationBed = () => {
+    const { node: item } = data.dailyFigures.edges.find(e => e.node.bed_number)
+
+    return {
+      date: item.date,
+      bedCount: Number(item.bed_number),
+      bedPercent: item.bed_percent,
+      roomCount: Number(item.room_number),
+      roomPercent: item.room_percent,
+    }
+  }
+
+  const isolationText = t("isolation_beds.helmet", {
+    date: isolationBed().date,
+    bedPercent: isolationBed().bedPercent,
+    roomCount: isolationBed().roomCount,
+    roomPercent: isolationBed().roomPercent,
+  })
+
   return (
     <>
       <Typography variant="body2">*{isolationText}</Typography>
       <SimpleLineChart
         data={{
           showLegend: false,
-          xaxis: data.allBotWarsLatestFigures.edges
-            .map(({ node }) => node.date)
-            .reverse(),
+          xaxis: data.dailyFigures.edges.map(({ node }) => node.date).reverse(),
           fields: ["hospitalised"],
           horizontalLines: [
             {
               color: "#ff574f",
               "stroke-dasharray": "5, 2",
-              legend: `${t("cases.isolation_bed")}${isolationBedCount}`,
-              value: isolationBedCount,
+              legend: t("cases.isolation_bed", {
+                bedCount: isolationBed().bedCount,
+              }),
+              value: isolationBed().bedCount,
             },
           ],
           datasets: [
@@ -102,8 +101,8 @@ export default props => {
                 color: "#ff574f",
                 // 'stroke-dasharray': '5, 2',
               },
-              data: data.allBotWarsLatestFigures.edges
-                .map(getDataForChart)
+              data: data.dailyFigures.edges
+                .map((e, i) => getDataForChart(e, i))
                 .reverse(),
             },
           ],

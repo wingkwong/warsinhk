@@ -34,7 +34,8 @@ export default function ConfirmedCaseVisual(props) {
               classification
               classification_zh
               classification_en
-              source_url
+              source_url_1
+              source_url_2
             }
           }
         }
@@ -53,9 +54,9 @@ export default function ConfirmedCaseVisual(props) {
   // since useStateQuery cannot pass variables, hence we do the filtering here
   return (
     <>
-      {latestCases.map((item, index) => (
+      {latestCases.map(item => (
         <WarsCaseCard
-          key={index}
+          key={item.node.case_no}
           node={item.node}
           showViewMore={true}
           i18n={i18n}

@@ -9,18 +9,20 @@ const csv2json = require("csvtojson")
 const path = require("path")
 const ae = require("./ae")
 const gn = require("./gn")
-const poster = require("./poster-gallery")
-const GOOGLE_SPREADSHEET_ID = "14kreo2vRo1XCUXqFLcMApVtYmvkEzWBDm6b8fzJNKEc"
-const SHEET_ALERT_MASTER = "alert"
+// const GOOGLE_SPREADSHEET_ID = "14kreo2vRo1XCUXqFLcMApVtYmvkEzWBDm6b8fzJNKEc"
 const LANGUAGES = ["zh", "en"]
 const { request } = require("graphql-request")
 const { getPath, getWarTipPath } = require("./src/utils/urlHelper")
 const isDebug = process.env.DEBUG_MODE === "true"
+const moment = require("moment")
+const fs = require("fs")
 
-const PUBLISHED_SPREADSHEET_HIGH_RISK_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbmRntCQ1cNkKd5eL3ZVBfgqX_lvQIdJIWxTTQdvSHd_3oIj_6yXOp48qAKdi-Pp-HqXdrrz1gysUr/pub?gid=0"
-const PUBLISHED_SPREADSHEET_WARS_CASES_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSr2xYotDgnAq6bqm5Nkjq9voHBKzKNWH2zvTRx5LU0jnpccWykvEF8iB_0g7Tzo2pwzkTuM3ETlr_h/pub?gid=0"
+const PUBLISHED_SPREADSHEET_I18N_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTVp8L95wLd23_2CuA57V-lU6tCRhGAPWSCghGhBuV4xKV_XMVjniCEoDxZnBMXEJ2MPlAi6WzOxlp/pub?gid=0"
+const PUBLISHED_SPREADSHEET_WARS_CASES_URLS = [
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSr2xYotDgnAq6bqm5Nkjq9voHBKzKNWH2zvTRx5LU0jnpccWykvEF8iB_0g7Tzo2pwzkTuM3ETlr_h/pub?gid=0",
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-Xw-QHYydz_kJCJLBqTKGbb2OF8_gisdUsduPbdR6Dp3tLbWxy_mkfRx2tMmGJ0q64uNsLLv3bbfb/pub?gid=0",
+]
 const PUBLISHED_SPREADSHEET_DODGY_SHOPS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_CejomuSCl7198EZ7JgujiAfcxwao-4_X5d3V8VasBKGTvSVtfPrFCl3NGMEwo_a6wZbmKZcqV-sB/pub?gid=1018551822"
 const PUBLISHED_SPREADSHEET_WARS_TIPS_URL =
@@ -29,8 +31,10 @@ const PUBLISHED_SPREADSHEET_DISRUPTION_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0gZ-QBC6JGMS28kYUMz90ZNXFb40CtoLtOIC-QzzlqhPKCIrAojuuN2GX6AXaECONvxJd84tpqzFd/pub?gid=0"
 const PUBLISHED_SPREADSHEET_DISRUPTION_DESCRIPTION_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0gZ-QBC6JGMS28kYUMz90ZNXFb40CtoLtOIC-QzzlqhPKCIrAojuuN2GX6AXaECONvxJd84tpqzFd/pub?gid=268131605"
-const PUBLISHED_SPREADSHEET_WARS_CASES_LOCATION_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6aoKk3iHmotqb5_iHggKc_3uAA901xVzwsllmNoOpGgRZ8VAA3TSxK6XreKzg_AUQXIkVX5rqb0Mo/pub?gid=0"
+const PUBLISHED_SPREADSHEET_WARS_CASES_LOCATION_URLS = [
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6aoKk3iHmotqb5_iHggKc_3uAA901xVzwsllmNoOpGgRZ8VAA3TSxK6XreKzg_AUQXIkVX5rqb0Mo/pub?gid=0",
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVRg6iiYOHZwLsXdZE6TVWBO7Cldi07NUnbeVY3nI97_IjyG3jiWnjaUS51HRNJI1fN3io1paMa6jZ/pub?gid=0",
+]
 const PUBLISHED_SPREADSHEET_BOT_WARS_LATEST_FIGURES_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTiCndDnXu6l5ZKq2aAVgU2xM3WGGW68XF-pEbLAloRbOzA1QwglLGJ6gTKjFbLQGhbH6GR2TsJKrO7/pub?gid=0"
 const PUBLISHED_OVERRIDE_MASTER_URL =
@@ -42,12 +46,15 @@ const PUBLISHED_SPREADSHEET_FRIENDLY_LINK_URL =
 const PUBLISHED_SPREADSHEET_TRAVEL_ALERT_URL =
   "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vQOnfZtGysW5qVe9FferSvhSODKa9ASH7SeqCGAGJSz8ZV7POm3kzFqfkbVAgryHKdj9WwLKXJai332/pub?gid=0"
 const PUBLISHED_SPREADSHEET_IMPORTANT_INFORMATION_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vShepjZrGpn8QlN8R3QFrIVhWLg9l0F99wYR9khAnhmoydOP7hkS2_L1imCjH9nHkqVQf3xGrUAi8Na/pub?gid=0"
-const PUBLISHED_SPREADSHEET_SITE_CONFIG_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUN7eL0XjPbkcmxnWKPH9_AOiRiIVcH25nLkOgbfRN7y1gk9tBucufIcLWTFFjjgMJNQmOxIFeU_Sk/pub?gid=0"
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vShepjZrGpn8QlN8R3QFrIVhWLg9l0F99wYR9khAnhmoydOP7hkS2_L1imCjH9nHkqVQf3xGrUAi8Na/pub?gid=257173560"
+// const PUBLISHED_SPREADSHEET_SITE_CONFIG_URL =
+//   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUN7eL0XjPbkcmxnWKPH9_AOiRiIVcH25nLkOgbfRN7y1gk9tBucufIcLWTFFjjgMJNQmOxIFeU_Sk/pub?gid=0"
 const PUBLISHED_SPREADSHEET_WARS_CASES_RELATIONSHIP_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQS7Aay-dZbemZAxbW1oVrC5QKnT9wPjd55hSGGnXGj8_jdZJa9dsKYI--dTv4EU--xt_HGIDZsdNEw/pub?gid=0"
-
+const PUBLISHED_SPREADSHEET_ALERT_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWN6o99FDJN4KsnAyq9KeWKEerF2_v1Z0wWbKiHPI0_Whuf00ZLW2n-GfoXciKgVXkBSoBEz6IhreC/pub?gid=0"
+const PUBLISHED_SPREADSHEET_UPDATES_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRY5OHr2hX8Xl_tJR1BgrffhoiVxqjngCu9W262MgyW5ZCXuZFaj1Od0PQJqNeRJ7ocUacI2WnodeTT/pub?gid=257173560"
 const GRAPHQL_URL = "https://api2.vote4.hk/v1/graphql"
 
 const createIMMDNode = async ({
@@ -98,10 +105,18 @@ const createWorldCasesNode = async ({
   createNodeId,
   createContentDigest,
 }) => {
+  const lastWeek = moment()
+    .add(-15, "days") // temp fix as we lost some baidu data
+    .format("YYYY-MM-DD")
   const type = "BaiduInternationalData"
 
   const query = `{
     wars_BaiduInternationalData (
+      where: {
+        date: { 
+          _gt: "${lastWeek}"
+        }
+      }
       distinct_on: [date, area]
       order_by: [
         {date: desc},
@@ -120,6 +135,11 @@ const createWorldCasesNode = async ({
 
   const baiduChinaQuery = `{
     wars_BaiduChinaData (
+      where: {
+        date: { 
+          _gt: "${lastWeek}"
+        }
+      }
       distinct_on: [date, area, city]
         order_by: [
           {date: desc},
@@ -251,37 +271,26 @@ const createAENode = async ({
   })
 }
 
-const createGNNode = async ({
-  actions: { createNode },
-  createNodeId,
-  createContentDigest,
-}) => {
-  const type = "GoogleNews"
-  const output = await gn.fetchGoogleNews()
-  const { records } = output
-  records.forEach((p, i) => {
-    const meta = {
-      id: createNodeId(`${type.toLowerCase()}-${i}`),
-      parent: null,
-      children: [],
-      internal: {
-        type,
-        contentDigest: createContentDigest(p),
-      },
-    }
-    const node = Object.assign({}, p, meta)
-    createNode(node)
-  })
-}
-
 const createGovNewsNode = async ({
-  actions: { createNode },
+  actions: { createNode, createTypes },
   createNodeId,
   createContentDigest,
 }) => {
   const type = "GovNews"
   const output = await gn.fetchGovNews()
   const { records } = output
+
+  const typeTemplate = `
+    type ${type} implements Node {
+      title_en: String
+      title_zh: String
+      link_en: String
+      link_zh: String
+      date: String
+    }
+  `
+  createTypes(typeTemplate)
+
   records.forEach((p, i) => {
     const meta = {
       id: createNodeId(`${type.toLowerCase()}-${i}`),
@@ -297,76 +306,67 @@ const createGovNewsNode = async ({
   })
 }
 
-const createPosterNode = async ({
-  actions: { createNode },
-  createNodeId,
-  createContentDigest,
-}) => {
-  const type = "PosterGallery"
-  const output = await poster.fetchCollactionPosterGallery()
-  const { galleries } = output
-  galleries.forEach((p, i) => {
-    const meta = {
-      id: createNodeId(`${type.toLowerCase()}-${i}`),
-      parent: null,
-      children: [],
-      internal: {
-        type,
-        contentDigest: createContentDigest(p),
-      },
-    }
-    const node = Object.assign({}, p, meta)
-    createNode(node)
-  })
-}
-
-const createNode = async (
-  { actions: { createNode }, createNodeId, createContentDigest },
-  sheetName,
-  type
-) => {
-  // All table has first row reserved
-  const result = await fetch(
-    `https://docs.google.com/spreadsheets/d/${GOOGLE_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&range=A2:ZZ&headers=0`
-  )
-  const data = await result.text()
-  const records = await csv2json().fromString(data)
-  records.forEach((p, i) => {
-    // create node for build time data example in the docs
-    const meta = {
-      // required fields
-      id: createNodeId(`${type.toLowerCase()}-${i}`),
-      parent: null,
-      children: [],
-      internal: {
-        type,
-        contentDigest: createContentDigest(p),
-      },
-    }
-    const node = Object.assign({}, p, meta)
-    createNode(node)
-  })
-}
+// const createNode = async (
+//   { actions: { createNode }, createNodeId, createContentDigest },
+//   sheetName,
+//   type
+// ) => {
+//   // All table has first row reserved
+//   const result = await fetch(
+//     `https://docs.google.com/spreadsheets/d/${GOOGLE_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&range=A2:ZZ&headers=0`
+//   )
+//   const data = await result.text()
+//   const records = await csv2json().fromString(data)
+//   records.forEach((p, i) => {
+//     // create node for build time data example in the docs
+//     const meta = {
+//       // required fields
+//       id: createNodeId(`${type.toLowerCase()}-${i}`),
+//       parent: null,
+//       children: [],
+//       internal: {
+//         type,
+//         contentDigest: createContentDigest(p),
+//       },
+//     }
+//     const node = Object.assign({}, p, meta)
+//     createNode(node)
+//   })
+// }
 
 const createPublishedGoogleSpreadsheetNode = async (
-  { actions: { createNode }, createNodeId, createContentDigest },
-  publishedURL,
+  { actions: { createNode, createTypes }, createNodeId, createContentDigest },
+  publishedURLs,
   type,
   { skipFirstLine = false, alwaysEnabled = false, subtype = null }
 ) => {
   // All table has first row reserved
-  const result = await fetch(
-    `${publishedURL}&single=true&output=csv&headers=0${
-    skipFirstLine ? "&range=A2:ZZ" : ""
-    }`
-  )
-  const data = await result.text()
-  const records = await csv2json().fromString(data)
-  records
+
+  let urls = publishedURLs
+  if (typeof publishedURLs === "string") {
+    urls = [publishedURLs]
+  }
+
+  const requests = urls.map(url => {
+    return fetch(
+      `${url}&single=true&output=csv&headers=0${
+        skipFirstLine ? "&range=A2:ZZ" : ""
+      }&q=${Math.floor(new Date().getTime(), 1000)}`
+    )
+      .then(result => result.text())
+      .then(data => csv2json().fromString(data))
+  })
+
+  const records = await Promise.all(requests)
+
+  const filteredRecords = records
+    .flat()
     .filter(
       r => alwaysEnabled || (isDebug && r.enabled === "N") || r.enabled === "Y"
     )
-    .forEach((p, i) => {
+
+  if (filteredRecords.length > 0) {
+    filteredRecords.forEach((p, i) => {
       // create node for build time data example in the docs
       const meta = {
         // required fields
@@ -380,9 +380,23 @@ const createPublishedGoogleSpreadsheetNode = async (
           contentDigest: createContentDigest(p),
         },
       }
-      const node = Object.assign({}, { ...p, subtype }, meta)
+      const node = { ...p, subtype, ...meta }
       createNode(node)
     })
+  } else if (records.length > 0) {
+    // So if filtered rows is empty,
+    // we manually create the type here.
+
+    // TODO: handle not even a single row ...
+    const fields = Object.keys(records[0])
+    const fieldString = fields.map(field => `${field}: String`).join("\n")
+    const typeTemplate = `
+      type ${type} implements Node {
+        ${fieldString}
+      }
+    `
+    createTypes(typeTemplate)
+  }
 }
 
 /*
@@ -396,9 +410,13 @@ exports.onCreatePage = async ({ page, actions }) => {
     if (!page.path.match(/^\/en/)) {
       deletePage(page)
       LANGUAGES.forEach(lang => {
+        const path = getPath(lang, page.path)
         createPage({
           ...page,
-          path: getPath(lang, page.path),
+          matchPath: page.path.includes("cases")
+            ? (path + "/*").replace(/[/]+\*/, "/*")
+            : page.matchPath,
+          path,
           context: {
             ...page.context,
             locale: lang,
@@ -411,7 +429,7 @@ exports.onCreatePage = async ({ page, actions }) => {
   })
 }
 
-exports.onCreateWebpackConfig = ({ stage, loaders, actions }) => {
+exports.onCreateWebpackConfig = ({ stage, loaders, actions, getConfig }) => {
   if (stage === "build-html") {
     const regex = [
       /node_modules\/leaflet/,
@@ -430,25 +448,30 @@ exports.onCreateWebpackConfig = ({ stage, loaders, actions }) => {
       },
     })
   }
+  if (getConfig().mode === "production") {
+    actions.setWebpackConfig({
+      devtool: false,
+    })
+  }
 }
 
 exports.sourceNodes = async props => {
   await Promise.all([
     createPublishedGoogleSpreadsheetNode(
       props,
-      PUBLISHED_SPREADSHEET_HIGH_RISK_URL,
-      "HighRisk",
-      { skipFirstLine: true }
+      PUBLISHED_SPREADSHEET_I18N_URL,
+      "i18n",
+      { skipFirstLine: false, alwaysEnabled: true }
     ),
     createPublishedGoogleSpreadsheetNode(
       props,
-      PUBLISHED_SPREADSHEET_WARS_CASES_URL,
+      PUBLISHED_SPREADSHEET_WARS_CASES_URLS,
       "WarsCase",
       { skipFirstLine: true }
     ),
     createPublishedGoogleSpreadsheetNode(
       props,
-      PUBLISHED_SPREADSHEET_WARS_CASES_LOCATION_URL,
+      PUBLISHED_SPREADSHEET_WARS_CASES_LOCATION_URLS,
       "WarsCaseLocation",
       {
         skipFirstLine: true,
@@ -512,11 +535,10 @@ exports.sourceNodes = async props => {
       "BorderShutdown",
       { skipFirstLine: true }
     ),
-    createNode(props, SHEET_ALERT_MASTER, "Alert"),
-    createNode(
+    createPublishedGoogleSpreadsheetNode(
       props,
-      PUBLISHED_SPREADSHEET_TRAVEL_ALERT_URL,
-      "BorderShutdown",
+      PUBLISHED_SPREADSHEET_ALERT_URL,
+      "Alert",
       { skipFirstLine: true }
     ),
     createPublishedGoogleSpreadsheetNode(
@@ -527,22 +549,25 @@ exports.sourceNodes = async props => {
     ),
     createPublishedGoogleSpreadsheetNode(
       props,
-      PUBLISHED_SPREADSHEET_SITE_CONFIG_URL,
-      "SiteConfig",
+      PUBLISHED_SPREADSHEET_UPDATES_URL,
+      "Updates",
       { skipFirstLine: true }
     ),
+    // createPublishedGoogleSpreadsheetNode(
+    //   props,
+    //   PUBLISHED_SPREADSHEET_SITE_CONFIG_URL,
+    //   "SiteConfig",
+    //   { skipFirstLine: true }
+    // ),
     createPublishedGoogleSpreadsheetNode(
       props,
       PUBLISHED_SPREADSHEET_WARS_CASES_RELATIONSHIP_URL,
       "WarsCaseRelation",
       { skipFirstLine: true }
     ),
-    createNode(props, SHEET_ALERT_MASTER, "Alert"),
     createAENode(props),
     createIMMDNode(props),
-    createGNNode(props),
     createGovNewsNode(props),
-    createPosterNode(props),
     createWorldCasesNode(props),
   ])
 }
@@ -571,6 +596,15 @@ exports.createPages = async ({ graphql, actions }) => {
 
   const result = await graphql(`
     query {
+      allI18N {
+        edges {
+          node {
+            key
+            en
+            zh
+          }
+        }
+      }
       allWarsTip {
         edges {
           node {
@@ -607,11 +641,26 @@ exports.createPages = async ({ graphql, actions }) => {
             classification
             classification_zh
             classification_en
-            source_url
+            source_url_1
+            source_url_2
+            source_url_3
+            source_url_4
+            source_url_5
           }
         }
       }
-      patient_track: allWarsCaseLocation(
+      allWarsCaseRelation {
+        edges {
+          node {
+            case_no
+            name_zh
+            name_en
+            description_zh
+            description_en
+          }
+        }
+      }
+      patientTrack: allWarsCaseLocation(
         sort: { order: DESC, fields: end_date }
       ) {
         group(field: case___case_no) {
@@ -621,6 +670,8 @@ exports.createPages = async ({ graphql, actions }) => {
               case_no
               start_date
               end_date
+              sub_district_zh
+              sub_district_en
               location_zh
               location_en
               action_zh
@@ -635,6 +686,28 @@ exports.createPages = async ({ graphql, actions }) => {
       }
     }
   `)
+
+  // Generate i18n translation json file
+  const translations = {
+    zh: {},
+    en: {},
+  }
+  result.data.allI18N.edges.forEach(edge => {
+    const {
+      node: { key, en, zh },
+    } = edge
+    translations["zh"][key] = zh
+    translations["en"][key] = en
+  })
+
+  LANGUAGES.forEach(lang => {
+    fs.mkdirSync(`src/locales/${lang}`, { recursive: true })
+    fs.writeFileSync(
+      `src/locales/${lang}/translation.json`,
+      JSON.stringify(translations[lang])
+    )
+  })
+
   result.data.allWarsTip.edges.forEach(({ node }) => {
     // This will not trigger onCreatePage
     LANGUAGES.forEach(lang => {
@@ -667,23 +740,59 @@ exports.createPages = async ({ graphql, actions }) => {
     })
   })
 
-  console.log(`creating ${result.data.allWarsCase.edges.length} page`);
-  // somehow onCreatePage is not triggering.. so we need to specify here
-  result.data.allWarsCase.edges.forEach(({ node }) => {
-    LANGUAGES.forEach(lang => {
-      const uri = getPath(lang, `/cases/${node.case_no}`);
-      actions.createPage({
-        path: uri,
-        component: path.resolve(`./src/templates/case.js`),
-        context: {
-          uri,
-          node,
-          patient_track: result.data.patient_track,
-        },
+  const groupArray = []
+  result.data.allWarsCaseRelation.edges.forEach(({ node }, id) => {
+    node.id = id + 1
+    node.case_no.split(",").forEach(nodeCase => {
+      groupArray.push({
+        ...node,
+        related_cases: node.case_no,
+        case_no: parseInt(nodeCase),
       })
-    });
-
+    })
   })
-
-  return Promise.resolve(null);
+  return Promise.resolve(null)
+}
+exports.onPostBuild = async ({ graphql, reporter }) => {
+  reporter.info("Injecting cases pages sitemap record")
+  const fs = require("fs")
+  const result = await graphql(`
+    query {
+      allWarsCase {
+        edges {
+          node {
+            case_no
+          }
+        }
+      }
+    }
+  `)
+  const template = no =>
+    `<url> <loc>https://wars.vote4.hk/cases/${no}</loc> <changefreq>daily</changefreq> <priority>0.7</priority> </url>
+<url> <loc>https://wars.vote4.hk/en/cases/${no}</loc> <changefreq>daily</changefreq> <priority>0.7</priority> </url>`
+  const caseNos = result.data.allWarsCase.edges.map(i => i.node.case_no)
+  const sitemapXml = fs.readFileSync("./public/sitemap.xml", "utf-8")
+  const caseNoSitemap = caseNos.map(template).join("\n")
+  fs.writeFileSync(
+    "./public/sitemap.xml",
+    sitemapXml.replace("</urlset>", caseNoSitemap + "\n</urlset>")
+  )
+  reporter.info("Setup cases routes and symlink for github SPA fallback")
+  for (const case_no of caseNos) {
+    try {
+      if (!fs.existsSync(`./public/cases/${case_no}`))
+        fs.mkdirSync(`./public/cases/${case_no}`)
+      if (!fs.existsSync(`./public/cases/${case_no}/index.html`))
+        fs.symlinkSync("../index.html", `./public/cases/${case_no}/index.html`)
+      if (!fs.existsSync(`./public/en/cases/${case_no}`))
+        fs.mkdirSync(`./public/en/cases/${case_no}`)
+      if (!fs.existsSync(`./public/en/cases/${case_no}/index.html`))
+        fs.symlinkSync(
+          "../index.html",
+          `./public/en/cases/${case_no}/index.html`
+        )
+    } catch (error) {
+      console.error(error)
+    }
+  }
 }

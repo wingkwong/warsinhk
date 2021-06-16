@@ -90,7 +90,10 @@ const StyledIconButton = styled(IconButton)`
   svg:hover {
     fill: ${props => props.theme.palette.primary.main};
   }
-}
+`
+
+const AboutButton = styled(UnstyledLink)`
+  margin: 10px 20px;
 `
 
 function ResponsiveDrawer(props) {
@@ -116,7 +119,6 @@ function ResponsiveDrawer(props) {
           <ListItemIcon>{mapIcon("translate")}</ListItemIcon>
           <LanguageSwitcher />
         </LanguageSwitcherContainer>
-
         <Divider />
         <List style={{ padding: "10px 20px" }}>
           <UnstyledLink
@@ -162,14 +164,6 @@ function ResponsiveDrawer(props) {
           </StyledIconButton>
         </LanguageSwitcherContainer>
         {/* Only show the forms in chinese as we do not have english form.. */}
-        {i18n.language === "zh" && (
-          <Link target="_blank" href="https://forms.gle/gK477bmq8cG57ELv8">
-            <ListItem>
-              <ListItemIcon>{mapIcon("edit")}</ListItemIcon>
-              <ListItemText primary={t("dodgy_shops.report_incident")} />
-            </ListItem>
-          </Link>
-        )}
 
         {i18n.language === "zh" && (
           <Link target="_blank" href="https://forms.gle/1M96G6xHH2tku4mJ8">
@@ -185,7 +179,7 @@ function ResponsiveDrawer(props) {
 
   const drawerFooter = () => (
     <div>
-      <UnstyledLink
+      <AboutButton
         to={getLocalizedPath(i18n, "/about-us")}
         activeClassName={"active"}
       >
@@ -198,7 +192,7 @@ function ResponsiveDrawer(props) {
             primary={t("about_us.title")}
           />
         </ListItem>
-      </UnstyledLink>
+      </AboutButton>
     </div>
   )
 

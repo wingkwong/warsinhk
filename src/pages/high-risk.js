@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, useMemo } from "react"
 import SEO from "@/components/templates/SEO"
 import Layout from "@components/templates/Layout"
 import { useTranslation } from "react-i18next"
 import { Box, Typography, Tooltip, ClickAwayListener } from "@material-ui/core"
-import { graphql } from "gatsby"
 import styled from "styled-components"
 import MuiLink from "@material-ui/core/Link"
 import { Link } from "gatsby"
@@ -14,13 +13,20 @@ import { makeStyles } from "@material-ui/core/styles"
 import AutoSizer from "react-virtualized/dist/es/AutoSizer"
 import * as d3 from "d3"
 import _groupBy from "lodash/groupBy"
+import _flatMap from "lodash/flatMap"
+import _orderBy from "lodash/orderBy"
 import DatePicker from "@/components/organisms/DatePicker"
 import Theme from "@/ui/theme"
 import { trackCustomEvent } from "gatsby-plugin-google-analytics"
-import { createDedupOptions, filterByDate } from "@/utils/search"
+import {
+  createDedupOptions,
+  filterByDate,
+  calculatePastNdays,
+} from "@/utils/search"
 import MultiPurposeSearch from "../components/molecules/MultiPurposeSearch"
 import { grey } from "@material-ui/core/colors"
-import { formatDateMDD, isSSR } from "@/utils"
+import { isSSR } from "@/utils"
+import { useAllCasesData } from "@components/data/useAllCasesData"
 
 const HighRiskMap = React.lazy(() =>
   import(/* webpackPrefetch: true */ "@components/highRiskMap")
@@ -146,9 +152,7 @@ export const CaseRow = ({ c, i18n, t, pass14days }) => (
       <Grid item xs={3}>
         <UnstyledRow>
           <CaseText component="div" variant="body2" pass14days={pass14days}>
-            {c.start_date === c.end_date
-              ? formatDateMDD(c.end_date)
-              : `${formatDateMDD(c.start_date)} - ${formatDateMDD(c.end_date)}`}
+            {c.end_date}
           </CaseText>
         </UnstyledRow>
       </Grid>
@@ -165,7 +169,7 @@ export const CaseRow = ({ c, i18n, t, pass14days }) => (
                 color={colors(0)}
               />
             )}
-            {c.case && (
+            {c.case_no && (
               <Link to={getLocalizedPath(i18n, `/cases/${c.case_no} `)}>
                 <CaseLabel color={colors(1)}>{`#${c.case_no}`}</CaseLabel>
               </Link>
@@ -196,7 +200,10 @@ const Item = ({ node, i18n, t }) => {
     <HighRiskCardContent>
       <HighRiskCardTitle>
         <CaseText component="span" variant="h6" pass14days={node.allPass14days}>
-          {withLanguage(i18n, node, "location")}
+          {t("cases_sub_district_location", {
+            sub_district: withLanguage(i18n, node, "sub_district"),
+            location: withLanguage(i18n, node, "location"),
+          })}
         </CaseText>
       </HighRiskCardTitle>
       {node.cases.map(c => (
@@ -232,20 +239,20 @@ const useStyle = makeStyles(theme => {
   }
 })
 
-const HighRiskPage = ({ data }) => {
+const HighRiskPage = () => {
+  const allCasesPageData = useAllCasesData()
+  const data = useMemo(() => {
+    const edges = _orderBy(
+      _flatMap(allCasesPageData.patient_track.group, "edges"),
+      "node.end_date"
+    ).filter(i => i.node.action_zh !== "求醫")
+    return { allWarsCaseLocation: { edges } }
+  }, [allCasesPageData])
   const [searchStartDate, setSearchStartDate] = useState(null)
   const [searchEndDate, setSearchEndDate] = useState(null)
   const { i18n, t } = useTranslation()
 
   const withinBoderFilter = ({ node }) => node.sub_district_zh !== "境外"
-
-  const nowTimeStamp = new Date()
-  const calculatePass14day = ({ case_no, end_date }) => {
-    const endDateTimeStamp = +new Date(end_date)
-    const daysToExpire = case_no !== "-" ? 14 : 0
-    if (Number.isNaN(endDateTimeStamp)) return false
-    return nowTimeStamp - endDateTimeStamp > 86400 * 1000 * daysToExpire
-  }
 
   const mapPinType = item => {
     switch (item.type) {
@@ -264,13 +271,18 @@ const HighRiskPage = ({ data }) => {
         const end_date = item.end_date === "Invalid date" ? "" : item.end_date
         return {
           ...item,
-          start_date: item.start_date === "Invalid date" ? "" : item.start_date,
           end_date,
-          pass14days: calculatePass14day(item),
+          pass14days: calculatePastNdays(
+            {
+              case_no: item.case_no,
+              date: item.end_date,
+            },
+            14
+          ),
           pinType: mapPinType(item),
         }
       }),
-      node => node.location_zh
+      node => `${node.sub_district_zh}${node.location_zh}`
     )
   ).map(cases => {
     const casesPass14daysArray = [...new Set(cases.map(c => c.pass14days))]
@@ -320,8 +332,6 @@ const HighRiskPage = ({ data }) => {
       if (a.node.end_date > b.node.end_date) return -1
       if (a.node.end_date < b.node.end_date) return 1
 
-      if (a.node.start_date > b.node.start_date) return -1
-      if (a.node.start_date < b.node.start_date) return 1
       return 0
     })
   const options = [
@@ -405,37 +415,3 @@ const HighRiskPage = ({ data }) => {
 }
 
 export default HighRiskPage
-
-export const HighRiskQuery = graphql`
-  query {
-    allWarsCaseLocation(
-      sort: { order: DESC, fields: end_date }
-      filter: { action_zh: { ne: "求醫" } }
-    ) {
-      edges {
-        node {
-          id
-          sub_district_zh
-          sub_district_en
-          action_zh
-          action_en
-          location_en
-          location_zh
-          remarks_en
-          remarks_zh
-          source_url_1
-          source_url_2
-          start_date
-          end_date
-          lat
-          lng
-          type
-          case_no
-          case {
-            case_no
-          }
-        }
-      }
-    }
-  }
-`

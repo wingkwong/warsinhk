@@ -6,7 +6,7 @@ import MenuItem from "@material-ui/core/MenuItem"
 import ShareIcon from "@material-ui/icons/Share"
 import { trackCustomEvent } from "gatsby-plugin-google-analytics"
 import { useStaticQuery, graphql } from "gatsby"
-import ContextStore from "@/contextStore"
+import { useLocation } from "@reach/router"
 import { isSSR } from "@/utils"
 
 import {
@@ -27,11 +27,18 @@ const StyledCopyIcon = styled(CopyIcon)`
   }
 `
 
+const StyledIconButton = styled(IconButton)`
+  && {
+    padding: 0px;
+  }
+`
+
 function isWebShareAPISupported() {
   return (
     "share" in navigator &&
     typeof navigator.share === "function" &&
-    "canShare" in navigator && typeof navigator.canShare === "function"
+    "canShare" in navigator &&
+    typeof navigator.canShare === "function"
   )
 }
 
@@ -91,6 +98,11 @@ function ShareButton(props) {
 
   function getPageUrl() {
     let url = `${site.siteMetadata.siteUrl}${fullPath}`
+
+    if (props.caseId) {
+      url = `${site.siteMetadata.siteUrl}${fullPath}/${props.caseId}`
+    }
+
     if (!isSSR()) {
       url = url + decodeURIComponent(window.location.hash)
     }
@@ -127,18 +139,13 @@ function ShareButton(props) {
       })
     }
   }
-
-  const {
-    route: {
-      state: { fullPath },
-    },
-  } = React.useContext(ContextStore)
+  const { pathname: fullPath } = useLocation()
 
   const url = getPageUrl()
 
   return (
     <>
-      <IconButton
+      <StyledIconButton
         color="inherit"
         aria-label="Share"
         aria-controls="share-menu"
@@ -146,7 +153,7 @@ function ShareButton(props) {
         onClick={handleShareButtonClick}
       >
         <ShareIcon />
-      </IconButton>
+      </StyledIconButton>
       <Menu
         id="share-menu"
         anchorEl={anchorEl}

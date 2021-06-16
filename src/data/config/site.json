@@ -51,23 +51,16 @@
       "bottomNav": false
     },
     {
-      "title": "wars_tips.title",
-      "to": "/wars-tips",
-      "icon": "wars_tips",
+      "title": "updates.title",
+      "to": "/updates",
+      "icon": "updates",
       "sideMenu": true,
       "bottomNav": true
     },
     {
-      "title": "news.title",
-      "to": "/news",
-      "icon": "news",
-      "sideMenu": true,
-      "bottomNav": false
-    },
-    {
-      "title": "poster_gallery.title",
-      "to": "/poster-gallery",
-      "icon": "poster_gallery",
+      "title": "wars_tips.title",
+      "to": "/wars-tips",
+      "icon": "wars_tips",
       "sideMenu": true,
       "bottomNav": false
     },
@@ -106,7 +99,8 @@
     "designers": [
       {
         "id": "bluedanny",
-        "name": "bluedanny"
+        "name": "bluedanny",
+        "url": "https://www.linkedin.com/in/danny3cheung/"
       }
     ],
     "volunteers": [
@@ -128,7 +122,7 @@
       },
       {
         "id": "poisonouspizza",
-        "name": "中毒的 Pizza"
+        "name": "肚餓的 Pizza"
       },
       {
         "id": "wishyouhealthy",
@@ -165,6 +159,50 @@
       {
         "id": "hoyiyuen",
         "name": "何已完"
+      },
+      {
+        "id": "curios",
+        "name": "curios"
+      },
+      {
+        "id": "iwantwelldone",
+        "name": "我要十成熟"
+      },
+      {
+        "id": "hker1",
+        "name": "香港人"
+      },
+      {
+        "id": "hker2",
+        "name": "香港人"
+      },
+      {
+        "id": "hker3",
+        "name": "香港人"
+      },
+      {
+        "id": "dari",
+        "name": "Dari"
+      },
+      {
+        "id": "pin",
+        "name": "Pin"
+      },
+      {
+        "id": "hker",
+        "name": "HKer"
+      },
+      {
+        "id": "trytohelp",
+        "name": "略盡綿力"
+      },
+      {
+        "id": "keymoji",
+        "name": "🗝"
+      },
+      {
+        "id": "taxi_uncle",
+        "name": "巴士佬"
       }
     ]
   }

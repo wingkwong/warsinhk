@@ -1,0 +1,56 @@
+name: Build And Deploy
+
+on:
+  push:
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version:
+          - 14.x
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - uses: actions/cache@v2
+      with:
+        path: |
+          **/node_modules
+          .cache
+          public
+        key: ${{ runner.os }}-nodejs-${{ matrix.node-version }}-modules-${{ hashFiles('**/yarn.lock') }}-v-${{ hashFiles('src/**/*.js') }}-deploy
+    - run: yarn install --frozen-lockfile
+    - run: yarn lint
+    - run: yarn build:incremental
+      env:
+        GOOGLE_TRACKING_ID: ${{ secrets.GOOGLE_TRACKING_ID }}
+        NODE_ENV: ${{ secrets.NODE_ENV }}
+        DEBUG_MODE: false
+    - name: Deploy to Github Page
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        publish_dir: ./public
+        keep_files: true
+        personal_token: ${{ secrets.DEPLOY_GITHUB_TOKEN }}
+        external_repository: vote4hk/wars.vote4.hk
+        cname: wars.vote4.hk
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+    - name: Deploy to Github Page (EN)
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        publish_dir: ./public
+        keep_files: true
+        personal_token: ${{ secrets.DEPLOY_GITHUB_TOKEN }}
+        external_repository: vote4hk/covid19.vote4.hk
+        cname: covid19.vote4.hk
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'

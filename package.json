@@ -1,12 +1,34 @@
 {
-  "name": "gatsby-starter-default",
+  "name": "warsinhk",
   "private": true,
-  "description": "A simple starter to get up and developing quickly with Gatsby",
+  "description": "Static website for wars.vote4.hk",
   "version": "0.1.0",
-  "author": "Kyle Mathews <mathews.kyle@gmail.com>",
+  "author": "nandiheath (https://github.com/nandiheath)",
+  "contributors": [
+    "csvke (https://github.com/csvke)",
+    "cswbrian (https://github.com/cswbrian)",
+    "dhoeric (https://github.com/dhoeric)",
+    "elvinyhlee (https://github.com/elvinyhlee)",
+    "fionnachan (https://github.com/fionnachan)",
+    "gotoAndDie (https://github.com/gotoAndDie)",
+    "himphen (https://github.com/himphen)",
+    "hosiukeung (https://github.com/hosiukeung)",
+    "howawong (https://github.com/howawong)",
+    "jasonhk (https://github.com/jasonhk)",
+    "johnhorsema (https://github.com/johnhorsema)",
+    "kalvin807 (https://github.com/kalvin807)",
+    "khmak3 (https://github.com/khmak3)",
+    "openhealthhk (https://github.com/openhealthhk)",
+    "poyea (https://github.com/poyea)",
+    "rogerso (https://github.com/rogerso)",
+    "tonyhhyip (https://github.com/tonyhhyip)",
+    "wingkwong (https://github.com/wingkwong)",
+    "yookoala (https://github.com/yookoala)",
+    "yshing (https://github.com/yshing)"
+  ],
   "dependencies": {
     "@datepicker-react/styled": "^2.3.1",
-    "@material-ui/core": "^4.8.3",
+    "@material-ui/core": "^4.11.1",
     "@material-ui/icons": "^4.5.1",
     "@material-ui/lab": "^4.0.0-alpha.40",
     "c3": "^0.7.12",
@@ -53,8 +75,10 @@
     "lodash.uniq": "^4.5.0",
     "lodash.uniqby": "^4.7.0",
     "moment": "^2.24.0",
+    "my-loopback-filter": "^3.0.0",
     "node-fetch": "^2.6.0",
-    "pixi.js": "^5.2.1",
+    "object.fromentries": "^2.0.2",
+    "pixi.js-legacy": "^5.2.1",
     "prop-types": "^15.7.2",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
@@ -90,7 +114,7 @@
     "prettier": "^1.19.1"
   },
   "keywords": [
-    "gatsby"
+    "warsinhk"
   ],
   "husky": {
     "hooks": {
@@ -108,6 +132,7 @@
   },
   "license": "MIT",
   "scripts": {
+    "build:incremental": "GATSBY_EXPERIMENTAL_PAGE_BUILD_ON_DATA_CHANGES=true gatsby build --log-pages",
     "build": "gatsby build",
     "develop": "gatsby develop",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
@@ -120,9 +145,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gatsbyjs/gatsby-starter-default"
+    "url": "https://github.com/nandiheath/warsinhk"
   },
   "bugs": {
-    "url": "https://github.com/gatsbyjs/gatsby/issues"
+    "url": "https://github.com/nandiheath/warsinhk/issues"
   }
 }
